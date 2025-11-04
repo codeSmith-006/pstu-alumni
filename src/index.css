@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+/* Define the dark variant: apply dark: classes when .dark is somewhere above */
+@variant dark (&:where(.dark, .dark *));
+
+/* Then your @theme (design tokens, colors) and other layers can go here */
+@theme {
+  /* You can define CSS variables or override for your own design system */
+  /* Example: */
+  --color-bg: white;
+  --color-fg: black;
+}
+
+@layer base {
+  html {
+    /* fallbacks or defaults */
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+  }
+  .dark {
+    /* when .dark is on html or ancestor, override variables */
+    --color-bg: #1a1a1a;
+    --color-fg: #ededed;
+  }
+}

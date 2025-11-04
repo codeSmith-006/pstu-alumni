@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ThemeToggle React</title>
+
+    <!-- dark mode toggle -->
+    <script>
+      (function () {
+        const html = document.documentElement;
+        const stored = localStorage.getItem("hs_theme");
+        const prefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)"
+        ).matches;
+
+        // Determine the mode: “light”, “dark”, or “auto”
+        const theme = stored === "light" || stored === "dark" ? stored : "auto";
+
+        if (theme === "dark" || (theme === "auto" && prefersDark)) {
+          html.classList.add("dark");
+          html.classList.remove("light");
+        } else if (theme === "light" || (theme === "auto" && !prefersDark)) {
+          html.classList.remove("dark");
+          html.classList.add("light");
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
