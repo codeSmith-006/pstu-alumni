@@ -19,7 +19,7 @@
   }
   .dark {
     /* when .dark is on html or ancestor, override variables */
-    --color-bg: #1a1a1a;
+    --color-bg: #000000;
     --color-fg: #ededed;
   }
 }
