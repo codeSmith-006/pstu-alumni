@@ -1,16 +1,16 @@
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect, use, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router";
 import AuthContext from "../../Context/AuthContext";
+import { Avatar, Dropdown, Tooltip } from "antd";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const { user } = use(AuthContext);
-
-  console.log("User: ", user);
+  const { user, logout } = use(AuthContext);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,8 +32,19 @@ const Navbar = () => {
   const profileOptions = [
     { name: "Dashboard", path: "/dashboard" },
     { name: "Settings", path: "/settings" },
-    { name: "Logout", action: () => setIsAuthenticated(false) },
+    { name: "Logout", action: () => logout() },
   ];
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <motion.nav
@@ -120,18 +131,36 @@ const Navbar = () => {
                 </motion.button>
               </>
             ) : (
-              <div className="relative">
+              <div className="relative" ref={menuRef}>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  onClick={() => setIsProfileOpen((prev) => !prev)}
                   className="flex items-center space-x-2 focus:outline-none"
                 >
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#BB86FC] to-[#9B6EF1] flex items-center justify-center text-white font-bold">
-                    JD
-                  </div>
+                  <Dropdown
+                    open={false} // we handle open manually via AnimatePresence
+                  >
+                    <Tooltip title={user?.displayName}>
+                      <Avatar
+                        src={user?.photoURL}
+                        alt={user?.displayName}
+                        className="cursor-pointer"
+                        style={{
+                          backgroundColor: "#2A2A2A",
+                          color: "#E0E0E0",
+                          fontWeight: "bold",
+                          width: "50px",
+                          height: "50px",
+                        }}
+                      >
+                        {!user?.photoURL && user?.displayName?.[0]}
+                      </Avatar>
+                    </Tooltip>
+                  </Dropdown>
                 </motion.button>
 
+                {/* Animated dropdown */}
                 <AnimatePresence>
                   {isProfileOpen && (
                     <motion.div
@@ -139,14 +168,17 @@ const Navbar = () => {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-48 bg-[#1E1E1E] rounded-lg shadow-xl overflow-hidden"
+                      className="absolute right-0 mt-2 w-48 bg-[#1E1E1E] rounded-lg shadow-xl overflow-hidden z-50"
                       style={{ border: "1px solid #2A2A2A" }}
                     >
                       {profileOptions.map((option, index) => (
                         <motion.button
                           key={option.name}
                           whileHover={{ backgroundColor: "#2A2A2A" }}
-                          onClick={option.action || (() => {})}
+                          onClick={() => {
+                            setIsProfileOpen(false);
+                            option.action && option.action();
+                          }}
                           className="w-full text-left px-4 py-3 text-[#E0E0E0] hover:text-white transition-colors"
                           style={{
                             borderBottom:

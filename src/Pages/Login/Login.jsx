@@ -2,6 +2,7 @@ import React, { use, useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import AuthContext from "../../Context/AuthContext";
+import { useNavigate } from "react-router";
 
 const Login = () => {
   const { loginWithGoogle } = use(AuthContext);
@@ -23,6 +24,9 @@ const Login = () => {
     }));
     setError("");
   };
+
+  // navigation
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,36 +53,39 @@ const Login = () => {
   const handleGoogleSignIn = async () => {
     try {
       const user = await loginWithGoogle();
+      if (user) {
+        navigate("/");
+      }
     } catch (error) {
       console.log("Google login error: ", error);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#121212] flex items-center justify-center pt-20 md:pt-0 p-4 sm:p-6 md:p-8">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="w-full max-w-md"
+        className="w-full max-w-md md:max-w-lg lg:max-w-xl"
       >
         {/* Login Card */}
         <motion.div
           animate={shake ? { x: [-10, 10, -10, 10, 0] } : {}}
           transition={{ duration: 0.4 }}
-          className="bg-[#1E1E1E] rounded-2xl shadow-2xl p-8 border border-[#2A2A2A]"
+          className="bg-[#1E1E1E] rounded-2xl shadow-2xl p-6 sm:p-8 md:p-10 border border-[#2A2A2A]"
         >
           {/* Logo/Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            className="text-center mb-8"
+            className="text-center mb-6 sm:mb-8"
           >
-            <h1 className="text-3xl font-bold text-[#E0E0E0] mb-3 bg-gradient-to-r from-[#BB86FC] to-[#9B6EF1] bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#E0E0E0] mb-2 sm:mb-3 bg-gradient-to-r from-[#BB86FC] to-[#9B6EF1] bg-clip-text text-transparent">
               Welcome Back
             </h1>
-            <p className="text-[#B0B0B0] text-sm leading-relaxed">
+            <p className="text-[#B0B0B0] text-xs sm:text-sm leading-relaxed">
               Sign in to reconnect, network, and explore alumni opportunities
             </p>
           </motion.div>
@@ -95,7 +102,7 @@ const Login = () => {
           )}
 
           {/* Login Form */}
-          <div className="space-y-5">
+          <div className="space-y-5 sm:space-y-6">
             {/* Email Input */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -120,7 +127,7 @@ const Login = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   placeholder="your.email@university.edu"
-                  className="w-full pl-11 pr-4 py-3 bg-[#2A2A2A] text-[#E0E0E0] rounded-lg border border-[#3A3A3A] focus:outline-none focus:border-[#BB86FC] transition-all"
+                  className="w-full pl-11 pr-4 py-3 sm:py-3.5 bg-[#2A2A2A] text-[#E0E0E0] rounded-lg border border-[#3A3A3A] focus:outline-none focus:border-[#BB86FC] transition-all text-sm sm:text-base"
                 />
               </div>
             </motion.div>
@@ -149,7 +156,7 @@ const Login = () => {
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="Enter your password"
-                  className="w-full pl-11 pr-12 py-3 bg-[#2A2A2A] text-[#E0E0E0] rounded-lg border border-[#3A3A3A] focus:outline-none focus:border-[#BB86FC] transition-all"
+                  className="w-full pl-11 pr-12 py-3 sm:py-3.5 bg-[#2A2A2A] text-[#E0E0E0] rounded-lg border border-[#3A3A3A] focus:outline-none focus:border-[#BB86FC] transition-all text-sm sm:text-base"
                 />
                 <button
                   type="button"
@@ -166,7 +173,7 @@ const Login = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.5 }}
-              className="flex items-center justify-between"
+              className="flex flex-col sm:flex-row items-center justify-between gap-3"
             >
               <label className="flex items-center space-x-2 cursor-pointer">
                 <input
@@ -199,7 +206,7 @@ const Login = () => {
               whileTap={{ scale: 0.98 }}
               onClick={handleSubmit}
               disabled={isLoading}
-              className="w-full py-3 rounded-lg font-semibold text-white relative overflow-hidden transition-all"
+              className="w-full py-3 sm:py-3.5 rounded-lg font-semibold text-white relative overflow-hidden transition-all text-sm sm:text-base"
               style={{
                 background: "linear-gradient(135deg, #BB86FC, #9B6EF1)",
               }}
@@ -257,7 +264,7 @@ const Login = () => {
               whileHover={{ scale: 1.02, backgroundColor: "#2A2A2A" }}
               whileTap={{ scale: 0.98 }}
               onClick={handleGoogleSignIn}
-              className="w-full py-3 rounded-lg font-medium text-[#E0E0E0] bg-[#1E1E1E] border border-[#3A3A3A] hover:border-[#BB86FC] transition-all flex items-center justify-center space-x-3"
+              className="w-full py-3 sm:py-3.5 rounded-lg font-medium text-[#E0E0E0] bg-[#1E1E1E] border border-[#3A3A3A] hover:border-[#BB86FC] transition-all flex items-center justify-center space-x-3 text-sm sm:text-base"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
@@ -288,7 +295,7 @@ const Login = () => {
             transition={{ delay: 0.9, duration: 0.5 }}
             className="mt-6 text-center"
           >
-            <p className="text-[#B0B0B0] text-sm">
+            <p className="text-[#B0B0B0] text-xs sm:text-sm">
               Don't have an account?{" "}
               <motion.a
                 whileHover={{ scale: 1.05 }}
@@ -306,7 +313,7 @@ const Login = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1, duration: 0.5 }}
-          className="text-center mt-6 text-[#B0B0B0] text-xs"
+          className="text-center mt-6 text-[#B0B0B0] text-[10px] sm:text-xs"
         >
           By continuing, you agree to our Terms of Service and Privacy Policy
         </motion.p>

@@ -40,6 +40,7 @@ export default function AuthProvider({ children }) {
     loginWithGoogle,
     authLoading,
     setAuthLoading,
+    logout,
   };
   return (
     <AuthContext.Provider value={authInfo}>{children}</AuthContext.Provider>
