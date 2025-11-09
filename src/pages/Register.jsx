@@ -1,102 +1,119 @@
 import { use, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useForm, Controller } from "react-hook-form";
 import { User, Mail, Lock, BookOpen, Building2, Check } from "lucide-react";
 import AuthContext from "../context/AuthContext";
 import axios from "axios";
-import { Upload, Image } from "antd";
+import { Upload, message } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
+import toast from "react-hot-toast";
 
 export default function Register() {
-  const { signUp, user } = use(AuthContext);
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    role: "Student",
-    department: "CSE",
-  });
+  // keep using your project's custom `use` call (matches your original file)
+  const { signUp, user, authAlert } = use(AuthContext);
+
+  // image state
   const [profilePicture, setProfilePicture] = useState(null);
+  const [verificationDoc, setVerificationDoc] = useState(null);
+
+  // submission state + top-level error
   const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState("");
+  const [topError, setTopError] = useState("");
 
-  console.log(user);
+  // for navigation
+  const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  // react-hook-form
+  const {
+    register,
+    handleSubmit,
+    control,
+    watch,
+    formState: { errors, isValid, isSubmitting },
+  } = useForm({
+    mode: "onChange",
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      role: "Student",
+      department: "CSE",
+    },
+  });
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const passwordValue = watch("password");
 
-    console.log("file type: ", file);
+  // Cloudinary upload helper (returns url or null)
+  const uploadToCloudinary = async (file) => {
+    if (!file) return null;
 
-    // Create FormData for Cloudinary upload
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "carecamp_unsigned"); // replace with your Cloudinary preset
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("upload_preset", "carecamp_unsigned"); // your preset
 
     try {
-      // Upload to Cloudinary
       const res = await axios.post(
-        `https://api.cloudinary.com/v1_1/dlr8t4tyc/image/upload`,
-        formData
+        "https://api.cloudinary.com/v1_1/dlr8t4tyc/image/upload",
+        fd
       );
-
-      const imgUrl = res.data.secure_url;
-      setProfilePicture(imgUrl);
-      console.log("image url: ", imgUrl);
+      return res.data.secure_url;
     } catch (err) {
-      console.error(err);
+      console.error("Cloudinary Upload Error:", err);
+      message.error("Image upload failed. Please try again.");
+      return null;
     }
   };
 
-  const validateForm = () => {
-    if (
-      !formData.fullName ||
-      !formData.email ||
-      !formData.password ||
-      !formData.confirmPassword
-    ) {
-      setError("Please fill in all required fields");
-      return false;
-    }
+  // handler used by AntD Upload via beforeUpload
+  const handleFileUpload = async (file, type) => {
+    const url = await uploadToCloudinary(file);
+    if (!url) return false;
 
-    // if (!formData.email.endsWith("@university.edu")) {
-    //   setError(
-    //     "You must use your university email (e.g., name@university.edu)"
-    //   );
-    //   return false;
-    // }
+    if (type === "profile") setProfilePicture(url);
+    if (type === "verification") setVerificationDoc(url);
 
-    if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters long");
-      return false;
-    }
+    // hide any top error if verification uploaded
+    if (type === "verification") setTopError("");
 
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return false;
-    }
-
-    return true;
+    // return false so AntD doesn't auto-upload
+    return false;
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setError("");
+  const onSubmit = async (data) => {
+    setTopError("");
 
-    if (!validateForm()) {
+    // require verification doc
+    if (!verificationDoc) {
+      setTopError(
+        "Please upload your ID card or certificate for verification."
+      );
+      message.error("Verification document is required.");
       return;
     }
 
-    setSubmitted(true);
+    // prepare payload (you can post to backend here)
+    const payload = {
+      ...data,
+      profilePicture,
+      verificationDoc,
+    };
+
+    // call your signUp (keeps original behavior)
+    await signUp(payload.email, payload.password);
+    if (user) {
+      console.log("User from register: ", user);
+      setSubmitted(true);
+      toast.success(authAlert || "Account created successfully!");
+    } else {
+      console.log(authAlert);
+      toast.error(authAlert);
+    }
   };
 
+  console.log(user);
+
   if (submitted) {
-    const user = signUp(formData.email, formData.password);
     return (
       <div className="min-h-screen bg-[#1E1E1E] flex flex-col">
         <div className="flex-1 flex items-center justify-center px-4 py-20">
@@ -116,12 +133,12 @@ export default function Register() {
                 Account Details
               </p>
               <p className="text-[#A9A9A9] text-sm mb-2">
-                Name: {formData.fullName}
+                Name: {watch("fullName")}
               </p>
               <p className="text-[#A9A9A9] text-sm mb-2">
-                Email: {formData.email}
+                Email: {watch("email")}
               </p>
-              <p className="text-[#A9A9A9] text-sm">Role: {formData.role}</p>
+              <p className="text-[#A9A9A9] text-sm">Role: {watch("role")}</p>
             </div>
             <Link
               to="/login"
@@ -141,9 +158,6 @@ export default function Register() {
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-[#6464F1] to-[#7C7CFF] rounded-lg flex items-center justify-center mx-auto mb-4">
-              <span className="text-white font-bold text-xl">A</span>
-            </div>
             <h1 className="text-3xl font-bold text-white mb-2">
               Create Your Account
             </h1>
@@ -151,7 +165,7 @@ export default function Register() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Full Name */}
             <div>
               <label className="block text-white text-sm font-semibold mb-2">
@@ -163,14 +177,20 @@ export default function Register() {
                   size={20}
                 />
                 <input
-                  defaultValue="rehan"
                   type="text"
-                  name="fullName"
-                  onChange={handleChange}
-                  placeholder="John Doe"
+                  placeholder="Rehan Islam"
+                  {...register("fullName", {
+                    required: "Full name is required",
+                    minLength: { value: 2, message: "Name is too short" },
+                  })}
                   className="w-full bg-[#2A2A2A] text-white placeholder-[#666666] rounded-lg pl-10 pr-4 py-3 border border-[#3A3A3A] focus:border-[#6464F1] focus:outline-none transition-colors duration-200"
                 />
               </div>
+              {errors.fullName && (
+                <p className="text-red-400 text-xs mt-1">
+                  {errors.fullName.message}
+                </p>
+              )}
             </div>
 
             {/* Email */}
@@ -184,17 +204,29 @@ export default function Register() {
                   size={20}
                 />
                 <input
-                  defaultValue="ryanrehan.pc@gmail.com"
                   type="email"
-                  name="email"
-                  onChange={handleChange}
-                  placeholder="john.doe@university.edu"
+                  placeholder="ug2302000@cse.pstu.ac.bd"
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                      message: "Enter a valid email address",
+                    },
+                    validate: (v) =>
+                      v.endsWith(".pstu.ac.bd") ||
+                      "You must use your university email (e.g., ug2302000@cse.pstu.ac.bd)",
+                  })}
                   className="w-full bg-[#2A2A2A] text-white placeholder-[#666666] rounded-lg pl-10 pr-4 py-3 border border-[#3A3A3A] focus:border-[#6464F1] focus:outline-none transition-colors duration-200"
                 />
               </div>
               <p className="text-[#A9A9A9] text-xs mt-1">
-                Must end with @university.edu
+                Must end with .pstu.ac.bd
               </p>
+              {errors.email && (
+                <p className="text-red-400 text-xs mt-1">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             {/* Password */}
@@ -208,14 +240,23 @@ export default function Register() {
                   size={20}
                 />
                 <input
-                  defaultValue="12345678@Rr"
                   type="password"
-                  name="password"
-                  onChange={handleChange}
                   placeholder="Min 8 characters"
+                  {...register("password", {
+                    required: "Password is required",
+                    minLength: {
+                      value: 8,
+                      message: "Password must be at least 8 characters long",
+                    },
+                  })}
                   className="w-full bg-[#2A2A2A] text-white placeholder-[#666666] rounded-lg pl-10 pr-4 py-3 border border-[#3A3A3A] focus:border-[#6464F1] focus:outline-none transition-colors duration-200"
                 />
               </div>
+              {errors.password && (
+                <p className="text-red-400 text-xs mt-1">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             {/* Confirm Password */}
@@ -229,54 +270,76 @@ export default function Register() {
                   size={20}
                 />
                 <input
-                  defaultValue="12345678@Rr"
                   type="password"
-                  name="confirmPassword"
-                  onChange={handleChange}
                   placeholder="Confirm your password"
+                  {...register("confirmPassword", {
+                    required: "Please confirm your password",
+                    validate: (v) =>
+                      v === passwordValue || "Passwords do not match",
+                  })}
                   className="w-full bg-[#2A2A2A] text-white placeholder-[#666666] rounded-lg pl-10 pr-4 py-3 border border-[#3A3A3A] focus:border-[#6464F1] focus:outline-none transition-colors duration-200"
                 />
               </div>
+              {errors.confirmPassword && (
+                <p className="text-red-400 text-xs mt-1">
+                  {errors.confirmPassword.message}
+                </p>
+              )}
             </div>
 
-            {/* Role Selection */}
-            <div>
-              <label className="block text-white text-sm font-semibold mb-2">
-                Role *
-              </label>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="w-full bg-[#2A2A2A] text-white rounded-lg px-4 py-3 border border-[#3A3A3A] focus:border-[#6464F1] focus:outline-none transition-colors duration-200"
-              >
-                <option>Student</option>
-                <option>Alumni</option>
-              </select>
-            </div>
-
-            {/* Department */}
-            <div>
-              <label className="block text-white text-sm font-semibold mb-2">
-                Department / Faculty *
-              </label>
-              <div className="relative">
-                <BookOpen
-                  className="absolute left-3 top-3.5 text-[#A9A9A9]"
-                  size={20}
+            {/* Role + Department */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-white text-sm font-semibold mb-2">
+                  Role *
+                </label>
+                <Controller
+                  control={control}
+                  name="role"
+                  rules={{ required: "Role is required" }}
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      className="w-full bg-[#2A2A2A] text-white rounded-lg px-4 py-3 border border-[#3A3A3A] focus:border-[#6464F1] focus:outline-none transition-colors duration-200"
+                    >
+                      <option>Student</option>
+                      <option>Alumni</option>
+                    </select>
+                  )}
                 />
-                <select
+                {errors.role && (
+                  <p className="text-red-400 text-xs mt-1">
+                    {errors.role.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-white text-sm font-semibold mb-2">
+                  Department / Faculty *
+                </label>
+                <Controller
+                  control={control}
                   name="department"
-                  value={formData.department}
-                  onChange={handleChange}
-                  className="w-full bg-[#2A2A2A] text-white rounded-lg pl-10 pr-4 py-3 border border-[#3A3A3A] focus:border-[#6464F1] focus:outline-none transition-colors duration-200"
-                >
-                  <option value="CSE">Computer Science Engineering</option>
-                  <option value="ECE">Electronics & Communication</option>
-                  <option value="ME">Mechanical Engineering</option>
-                  <option value="CIVIL">Civil Engineering</option>
-                  <option value="OTHER">Others (Under Development)</option>
-                </select>
+                  rules={{ required: "Department is required" }}
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      className="w-full bg-[#2A2A2A] text-white rounded-lg px-4 py-3 border border-[#3A3A3A] focus:border-[#6464F1] focus:outline-none transition-colors duration-200"
+                    >
+                      <option value="CSE">Computer Science Engineering</option>
+                      <option value="ECE">Electronics & Communication</option>
+                      <option value="ME">Mechanical Engineering</option>
+                      <option value="CIVIL">Civil Engineering</option>
+                      <option value="OTHER">Others (Under Development)</option>
+                    </select>
+                  )}
+                />
+                {errors.department && (
+                  <p className="text-red-400 text-xs mt-1">
+                    {errors.department.message}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -299,24 +362,24 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Profile Picture Upload */}
-            <div>
+            {/* Profile Picture + Verification (side-by-side, small gap) */}
+            <div className="flex items-start gap-6">
+              {/* Profile Picture (Optional) */}
               <div>
                 <label className="block text-white text-sm font-semibold mb-2">
-                  Profile Picture (Optional)
+                  Profile Picture
                 </label>
 
-                <div className="bg-[#2A2A2A] rounded-lg border w-fit border-[#3A3A3A] hover:border-[#6464F1] transition-colors duration-200 flex items-center justify-center">
+                <div className="bg-[#2A2A2A] rounded-lg border flex items-center justify-center border-[#3A3A3A] hover:border-[#6464F1] transition-colors duration-200">
                   <Upload
                     listType="picture-card"
                     accept="image/*"
                     maxCount={1}
                     beforeUpload={(file) => {
-                      handleFileUpload({ target: { files: [file] } }); // your function
-                      return false; // prevent auto-upload
+                      handleFileUpload(file, "profile");
+                      return false;
                     }}
-                    className="dark-upload w-full h-full flex items-center justify-center"
-                    showUploadList={false} // hide default AntD thumbnail
+                    showUploadList={false}
                   >
                     {profilePicture ? (
                       <img
@@ -333,27 +396,62 @@ export default function Register() {
                   </Upload>
                 </div>
               </div>
+
+              {/* Verification (Mandatory) */}
+              <div>
+                <label className="block text-white text-sm font-semibold mb-2">
+                  ID Card / Certificate{" "}
+                  <span className="ml-1" aria-hidden>
+                    *
+                  </span>
+                  <span className="sr-only">required</span>
+                </label>
+
+                <div
+                  className="bg-[#2A2A2A] rounded-lg border w-fit
+                 flex items-center justify-center border-[#3A3A3A] hover:border-[#6464F1] transition-colors duration-200"
+                >
+                  <Upload
+                    listType="picture-card"
+                    accept="image/*"
+                    maxCount={1}
+                    beforeUpload={(file) => {
+                      handleFileUpload(file, "verification");
+                      return false;
+                    }}
+                    showUploadList={false}
+                  >
+                    {verificationDoc ? (
+                      <img
+                        src={verificationDoc}
+                        alt="Verification Document"
+                        className="w-full h-full object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-[#A9A9A9]">
+                        <PlusOutlined className="text-[#A9A9A9] text-2xl" />
+                        <p className="mt-1 text-xs">Upload Required</p>
+                      </div>
+                    )}
+                  </Upload>
+                </div>
+              </div>
             </div>
 
-            {/* Error Message */}
-            {error && (
+            {/* Top-level error */}
+            {topError && (
               <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-                <p className="text-red-400 text-sm">{error}</p>
+                <p className="text-red-400 text-sm">{topError}</p>
               </div>
             )}
 
-            {/* Submit Button */}
+            {/* Submit */}
             <button
               type="submit"
-              disabled={
-                !formData.fullName ||
-                !formData.email ||
-                !formData.password ||
-                !formData.confirmPassword
-              }
+              disabled={!isValid || isSubmitting || !verificationDoc}
               className="w-full px-6 py-3 bg-gradient-to-r from-[#6464F1] to-[#7C7CFF] text-white font-semibold rounded-lg hover:from-[#7474F1] hover:to-[#8C8CFF] transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Account
+              {isSubmitting ? "Creating..." : "Create Account"}
             </button>
           </form>
 

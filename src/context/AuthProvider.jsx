@@ -13,16 +13,24 @@ import { auth } from "../Auth/firebase.config";
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  // setting auth error
+  const [authAlert, setAuthAlert] = useState(null);
 
   // sign up with email and password
   const signUp = (email, password) => {
     createUserWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
         // Signed up
+        console.log("Email: ", email)
+        console.log("Password: ", )
         const user = userCredential.user;
+        setAuthAlert("Account created successfully!");
+        setUser(user);
       })
       .catch((error) => {
-        console.log("error: ", error);
+        setAuthAlert(error.message);
+        console.log(authAlert);
+        console.log("error: ", error.message);
       });
   };
 
@@ -32,10 +40,12 @@ export default function AuthProvider({ children }) {
       .then((userCredential) => {
         // Signed in
         const user = userCredential.user;
+        setUser(user);
+        setAuthAlert("Account created successfully!");
         console.log(user);
       })
       .catch((error) => {
-        console.log("error: ", error);
+        console.log("error: ", error.massage);
       });
   };
 
@@ -61,6 +71,7 @@ export default function AuthProvider({ children }) {
     setAuthLoading,
     logout,
     signIn,
+    authAlert,
   };
   return (
     <AuthContext.Provider value={authInfo}>{children}</AuthContext.Provider>

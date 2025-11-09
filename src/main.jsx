@@ -5,9 +5,11 @@ import App from "./App.jsx";
 import { RouterProvider } from "react-router";
 import Router from "./Router/Router.jsx";
 import AuthProvider from "./context/AuthProvider.jsx";
+import { Toaster } from "react-hot-toast";
 
 createRoot(document.getElementById("root")).render(
   <AuthProvider>
+    <Toaster position="top-right" reverseOrder={false} />
     <RouterProvider router={Router} />
   </AuthProvider>
 );
