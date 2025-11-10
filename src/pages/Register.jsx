@@ -1,16 +1,18 @@
 import { use, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { data, Link, useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { User, Mail, Lock, BookOpen, Building2, Check } from "lucide-react";
 import AuthContext from "../context/AuthContext";
 import axios from "axios";
-import { Upload, message } from "antd";
+import { Upload, message, Spin } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import toast from "react-hot-toast";
+import { updateProfile } from "firebase/auth";
+import { auth } from "../Auth/firebase.config";
 
 export default function Register() {
   // keep using your project's custom `use` call (matches your original file)
-  const { signUp, user, authAlert } = use(AuthContext);
+  const { signUp, user, authAlert, authLoading } = use(AuthContext);
 
   // image state
   const [profilePicture, setProfilePicture] = useState(null);
@@ -99,53 +101,115 @@ export default function Register() {
       verificationDoc,
     };
 
-    // call your signUp (keeps original behavior)
-    await signUp(payload.email, payload.password);
-    if (user) {
-      console.log("User from register: ", user);
-      setSubmitted(true);
-      toast.success(authAlert || "Account created successfully!");
-    } else {
-      console.log(authAlert);
-      toast.error(authAlert);
+    console.log("submitted data: ", payload);
+
+    try {
+      // awaiting signUp (auth provider will manage authLoading)
+      const created = await signUp(payload.email, payload.password);
+      // update users data
+      const updateRes = await updateProfile(auth.currentUser, {
+        displayName: payload?.fullName,
+        photoURL:
+          payload?.photoURL ||
+          "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png",
+      });
+
+      console.log("Update response: ", updateRes);
+
+      // The AuthProvider normalizes user and populates context.user on success.
+      // We check the context user - since signUp returned the firebase user on success,
+      // proceed if created is truthy.
+      if (created) {
+        setSubmitted(true);
+        toast.success(authAlert || "Account created successfully!");
+        // optional: navigate('/login') or similar
+      } else {
+        // signUp returned null => error string available in authAlert
+        toast.error(authAlert || "Signup failed.");
+      }
+    } catch (err) {
+      console.error("Register onSubmit error:", err);
+      toast.error("Something went wrong. Please try again.");
     }
   };
-
-  console.log(user);
 
   if (submitted) {
     return (
       <div className="min-h-screen bg-[#1E1E1E] flex flex-col">
         <div className="flex-1 flex items-center justify-center px-4 py-20">
           <div className="w-full max-w-md text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-[#6464F1] to-[#7C7CFF] rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-[#6464F1] to-[#7C7CFF] rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
               <Check className="text-white" size={32} />
             </div>
-            <h1 className="text-3xl font-bold text-white mb-4">
-              Thank You for Registering
+
+            <h1 className="text-3xl font-bold text-white mb-2">
+              Thanks for Registering
             </h1>
+
             <p className="text-[#A9A9A9] mb-6">
-              Your account has been created successfully. Your account is now
-              active and you can log in immediately.
+              Your registration is received and is currently{" "}
+              <span className="font-semibold text-white">
+                pending verification
+              </span>
+              . An administrator will review your documents and confirm your
+              account shortly.
             </p>
-            <div className="bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg p-6 mb-8">
-              <p className="text-white text-sm mb-3 font-semibold">
-                Account Details
-              </p>
-              <p className="text-[#A9A9A9] text-sm mb-2">
-                Name: {watch("fullName")}
-              </p>
-              <p className="text-[#A9A9A9] text-sm mb-2">
-                Email: {watch("email")}
-              </p>
-              <p className="text-[#A9A9A9] text-sm">Role: {watch("role")}</p>
+
+            <div className="bg-[#2A2A2A] border border-[#3A3A3A] rounded-lg p-6 mb-6 text-left">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-white text-sm mb-3 font-semibold">
+                    Account Details
+                  </p>
+                  <p className="text-[#A9A9A9] text-sm mb-1">
+                    Name: {watch("fullName")}
+                  </p>
+                  <p className="text-[#A9A9A9] text-sm mb-1">
+                    Email: {watch("email")}
+                  </p>
+                  <p className="text-[#A9A9A9] text-sm">
+                    Role: {watch("role")}
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-yellow-500/10 text-yellow-300 border border-yellow-600">
+                    Pending
+                  </span>
+                  <p className="text-[#A9A9A9] text-xs mt-2">
+                    You will be notified by email.
+                  </p>
+                </div>
+              </div>
             </div>
-            <Link
-              to="/login"
-              className="inline-block px-8 py-3 bg-gradient-to-r from-[#6464F1] to-[#7C7CFF] text-white font-semibold rounded-lg hover:from-[#7474F1] hover:to-[#8C8CFF] transition-all duration-200"
-            >
-              Go to Login
-            </Link>
+
+            <div className="flex gap-3 justify-center mb-6">
+              <Link
+                to="/"
+                className="inline-block px-6 py-3 bg-[#2A2A2A] border border-[#3A3A3A] text-[#A9A9A9] rounded-lg hover:border-[#6464F1] hover:text-white transition-colors duration-200"
+              >
+                Back to Home
+              </Link>
+
+              <Link
+                to="/contact"
+                className="inline-block px-6 py-3 bg-gradient-to-r from-[#6464F1] to-[#7C7CFF] text-white font-semibold rounded-lg hover:from-[#7474F1] hover:to-[#8C8CFF] transition-all duration-200"
+              >
+                Contact Support
+              </Link>
+            </div>
+
+            <p className="text-[#A9A9A9] text-xs">
+              If you need faster verification, reply to the verification email
+              or contact{" "}
+              <a
+                href="mailto:helpdesk@alumni.university.edu"
+                className="text-[#6464F1] hover:text-[#7C7CFF]"
+              >
+                helpdesk@alumni.university.edu
+              </a>
+              .
+            </p>
           </div>
         </div>
       </div>

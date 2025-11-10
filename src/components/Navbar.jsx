@@ -44,6 +44,9 @@ const Navbar = () => {
     { name: "Logout", action: logout },
   ];
 
+  // consoling the user
+  console.log(user);
+
   return (
     <nav
       className={`sticky top-0 z-50 transition-colors duration-200 ${
@@ -76,17 +79,15 @@ const Navbar = () => {
           </div>
 
           {/* Auth Buttons / Profile */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 relative">
             {!user ? (
               <div className="hidden sm:flex items-center space-x-3">
                 <Link to="/login">
-                  {" "}
                   <button className="px-4 py-2 text-sm font-medium text-[#A9A9A9] hover:text-white transition-colors duration-150">
                     Login
                   </button>
                 </Link>
                 <Link to="register">
-                  {" "}
                   <button className="px-4 py-2 text-sm font-medium text-white rounded-lg bg-gradient-to-r from-[#6464F1] to-[#7C7CFF] hover:from-[#7474F1] hover:to-[#8C8CFF] transition-colors duration-150">
                     Register
                   </button>
@@ -115,7 +116,7 @@ const Navbar = () => {
                 </button>
 
                 {isProfileOpen && (
-                  <div className="absolute top-16 right-0 w-48 bg-[#2A2A2A] rounded-lg border border-[#3A3A3A] shadow-lg">
+                  <div className="absolute top-full right-0 w-48 bg-[#2A2A2A] rounded-lg border border-[#3A3A3A] shadow-lg mt-2">
                     {profileOptions.map((option, index) => (
                       <button
                         key={option.name}
@@ -170,13 +171,11 @@ const Navbar = () => {
                 {!user ? (
                   <div className="space-y-2">
                     <Link to="/login">
-                      {" "}
                       <button className="w-full px-3 py-2 text-base font-medium text-[#A9A9A9] hover:text-white hover:bg-[#3A3A3A] rounded-lg transition-colors duration-150 text-left">
                         Login
                       </button>
                     </Link>
                     <Link to="/register">
-                      {" "}
                       <button className="w-full px-3 py-2 text-base font-medium text-white rounded-lg bg-gradient-to-r from-[#6464F1] to-[#7C7CFF] hover:from-[#7474F1] hover:to-[#8C8CFF] transition-colors duration-150">
                         Register
                       </button>

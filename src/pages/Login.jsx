@@ -2,18 +2,23 @@ import { use, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import AuthContext from "../context/AuthContext";
+import { Spin } from "antd";
+import toast from "react-hot-toast";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const { signIn, user } = use(AuthContext);
+  const { signIn, user, authLoading, authAlert } = use(AuthContext);
 
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    setError("");
 
     if (!email || !password) {
       setError("Please fill in all fields");
@@ -25,10 +30,25 @@ export default function Login() {
       return;
     }
 
-    await signIn(email, password);
+    try {
+      setIsSubmitting(true);
 
-    if (user) {
-      navigate("/");
+      const signed = await signIn(email, password);
+
+      if (signed) {
+        toast.success(authAlert || "Signed in successfully!");
+        navigate("/");
+      } else {
+        // signIn returned null -> authAlert contains message
+        setError(authAlert || "Failed to sign in");
+        toast.error(authAlert || "Failed to sign in");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -114,8 +134,12 @@ export default function Login() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full px-6 py-3 bg-gradient-to-r from-[#6464F1] to-[#7C7CFF] text-white font-semibold rounded-lg hover:from-[#7474F1] hover:to-[#8C8CFF] transition-all duration-200 transform hover:scale-105"
+              disabled={isSubmitting || authLoading}
+              className="w-full px-6 py-3 bg-gradient-to-r from-[#6464F1] to-[#7C7CFF] text-white font-semibold rounded-lg hover:from-[#7474F1] hover:to-[#8C8CFF] transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
+              {(isSubmitting || authLoading) && (
+                <Spin size="small" className="mr-2" />
+              )}
               Sign In
             </button>
           </form>
